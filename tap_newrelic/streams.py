@@ -64,7 +64,11 @@ class NewRelicStream(GraphQLStream):
         )
 
     def get_url_params(self, partition, next_page_token: Optional[DateTimeType] = None) -> dict:
-        next_page_token = next_page_token or self.get_starting_timestamp(partition)
+        if not next_page_token:
+            next_page_token = self.get_starting_timestamp(partition)
+            self.latest_timestamp = next_page_token.isoformat()
+        # NQRL only supports timestamps to second resolution
+        next_page_token = next_page_token.set(microsecond=0)
         nqrl = self.nqrl_query.format(
             next_page_token.strftime(self.datetime_format),
             self.get_replication_key_signpost(partition).strftime(self.datetime_format),
