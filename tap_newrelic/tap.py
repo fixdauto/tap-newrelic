@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from singer_sdk import Tap, Stream
+from singer_sdk import Stream, Tap
 from singer_sdk.typing import (
     ArrayType,
     BooleanType,
@@ -16,13 +16,12 @@ from singer_sdk.typing import (
     StringType,
 )
 
-from tap_newrelic.streams import (
-    SyntheticCheckStream,
-)
+from tap_newrelic.streams import SyntheticCheckStream
 
 STREAM_TYPES = [
     SyntheticCheckStream,
 ]
+
 
 class TapNewRelic(Tap):
     """NewRelic tap class."""
