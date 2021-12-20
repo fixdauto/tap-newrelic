@@ -53,6 +53,12 @@ jobs:
     - name: Install dependencies
       run: |
         poetry install
+    - name: Load Secrets for tests
+      run: |
+        jq --null-input \
+          --arg account_id ${{secrets.TAP_NEWRELIC_ACCOUNT_ID}} \
+          --arg api_key ${{secrets.TAP_NEWRELIC_API_KEY}} \
+          '{"account_id":$account_id|tonumber,"api_key":$api_key}' > .secrets/config.json
     - name: Test with pytest
       run: |
         poetry run pytest --capture=no
