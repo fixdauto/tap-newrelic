@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tap-newrelic"
-version = "0.0.1"
+version = "0.1.2"
 description = "`tap-newrelic` is Singer tap for NewRelic, built with the Singer SDK."
 authors = ["Charles Julian Knight"]
 license = "Apache 2.0"
