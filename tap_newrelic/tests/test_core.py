@@ -19,6 +19,12 @@ SAMPLE_CONFIG = {
     **SECRETS,
 }
 
+with open(
+    os.path.join(os.path.dirname(__file__), "fixtures", "sample_event.json")
+) as f:
+    SAMPLE_EVENT = json.load(f)
+
+
 # Run standard built-in tap tests from the SDK:
 def test_standard_tap_tests():
     """Run standard tap tests from the SDK."""
@@ -27,22 +33,12 @@ def test_standard_tap_tests():
         test()
 
 
-with open(
-    os.path.join(os.path.dirname(__file__), "fixtures", "sample_event.json")
-) as f:
-    SAMPLE_EVENT = json.load(f)
-
-
-def encode_timestamp(s):
-    return int(pendulum.parse(s).timestamp() * 1000)
-
-
 def test_same_second_events_on_page_break():
+    def encode_timestamp(s):
+        return int(pendulum.parse(s).timestamp() * 1000)
+
     tap = TapNewRelic(config=SAMPLE_CONFIG)
     stream = SyntheticCheckStream(tap=tap)
-
-    output = []
-
     timestamps = [
         # first page
         [
@@ -75,6 +71,7 @@ def test_same_second_events_on_page_break():
             },
         ],
     ]
+    output = []
 
     for page in timestamps:
         for event in page:
@@ -90,7 +87,7 @@ def test_same_second_events_on_page_break():
     assert output[1]["timestamp"] == "2021-01-01T00:00:01.500000+00:00"  # second event
     assert output[1]["id"] == "5ea94a43-ca97-4d65-9b48-af86eb93512c"
     # should not re-emit duplicate row
-    assert output[2] == None
+    assert output[2] is None
 
     assert output[3]["id"] != "5ea94a43-ca97-4d65-9b48-af86eb93512c"
     assert output[3]["timestamp"] == "2021-01-01T00:00:01.750000+00:00"
@@ -99,5 +96,7 @@ def test_same_second_events_on_page_break():
     assert output[5]["timestamp"] == "2021-01-01T00:00:02.500000+00:00"
     assert output[5]["id"] == "a8d5c9db-c08d-4dc5-88fb-920e32389a53"
 
-    assert stream.latest_timestamp == "2021-01-01T00:00:02.500000+00:00"
-    assert stream.latest_id == ["a8d5c9db-c08d-4dc5-88fb-920e32389a53"]
+    assert stream._latest_timestamp == pendulum.parse(
+        "2021-01-01T00:00:02.500000+00:00"
+    )
+    assert stream._latest_id == ["a8d5c9db-c08d-4dc5-88fb-920e32389a53"]
