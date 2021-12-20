@@ -181,7 +181,7 @@ class NewRelicStream(GraphQLStream):
         """
         row["timestamp"] = unix_timestamp_to_datetime(row["timestamp"])
         if self._check_duplicates(row):
-            self.logger.info(f"skipping duplicate {row['timestamp']}")
+            self.logger.debug(f"skipping duplicate {self.name} at {row['timestamp']}")
             return None
 
         row["timestamp"] = row[
