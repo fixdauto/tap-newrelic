@@ -1,28 +1,22 @@
 """NewRelic tap class."""
 
-from pathlib import Path
 from typing import List
 
-from singer_sdk import Tap, Stream
+from singer_sdk import Stream, Tap
 from singer_sdk.typing import (
-    ArrayType,
-    BooleanType,
     DateTimeType,
     IntegerType,
-    NumberType,
-    ObjectType,
     PropertiesList,
     Property,
     StringType,
 )
 
-from tap_newrelic.streams import (
-    SyntheticCheckStream,
-)
+from tap_newrelic.streams import SyntheticCheckStream
 
 STREAM_TYPES = [
     SyntheticCheckStream,
 ]
+
 
 class TapNewRelic(Tap):
     """NewRelic tap class."""

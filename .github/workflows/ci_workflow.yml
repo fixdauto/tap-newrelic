@@ -1,0 +1,64 @@
+### A CI workflow template that runs linting and python testing
+### TODO: Modify as needed or as desired.
+
+name: Test TapNewRelic
+
+on: [push]
+
+jobs:
+  linting:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Only lint using the primary version used for dev
+        python-version: [3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+    - name: Install dependencies
+      run: |
+        poetry install
+    - name: Run lint command from tox.ini
+      run: |
+        poetry run tox -e lint
+
+  pytest:
+
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+    - name: Install dependencies
+      run: |
+        poetry install
+    - name: Load Secrets for tests
+      run: |
+        jq --null-input \
+          --arg account_id ${{secrets.TAP_NEWRELIC_ACCOUNT_ID}} \
+          --arg api_key ${{secrets.TAP_NEWRELIC_API_KEY}} \
+          '{"account_id":$account_id|tonumber,"api_key":$api_key}' > .secrets/config.json
+    - name: Test with pytest
+      run: |
+        poetry run pytest --capture=no
