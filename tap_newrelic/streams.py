@@ -131,7 +131,7 @@ class NewRelicStream(GraphQLStream):
             next_page_timestamp.strftime(self.datetime_format),
             replication_key_signpost.strftime(self.datetime_format),
         )
-        self.logger.debug(nqrl)
+        self.logger.info(nqrl)
         return {
             "accountId": self.config.get("account_id"),
             "query": nqrl,
@@ -318,17 +318,23 @@ class CustomQueryStream(NewRelicStream):
         self._schema = None
         super().__init__(*args, **kwargs)
         self.initialized = True
+        self._schema = self.schema
+        # reset earliest timestamp
+        self._latest_timestamp = None
 
-    @cached_property
+    @property
     def nqrl_query(self):
         """Return the full NQRL query to execute."""
         if not self._schema:
-            return self.base_nqrl_query() + " ORDER BY timestamp LIMIT MAX"
+            return (
+                self.base_nqrl_query
+                + " SINCE '1970-01-01' ORDER BY timestamp LIMIT MAX"
+            )
         return (
-            self.base_nqrl_query()
-            + " SINCE '{}' UNTIL '{}' ORDER BY timestamp LIMIT MAX"
+            self.base_nqrl_query + " SINCE '{}' UNTIL '{}' ORDER BY timestamp LIMIT MAX"
         )
 
+    @cached_property
     def base_nqrl_query(self):
         """Return the un-ordered query as defined by the config."""
         return {
@@ -356,7 +362,4 @@ class CustomQueryStream(NewRelicStream):
             )
         for row in rows:
             schema = {**schema, **row_to_property_types(snake_case(row))}
-        self._schema = PropertiesList(
-            *[Property(k, v) for k, v in schema.items()]
-        ).to_dict()
-        return self._schema
+        return PropertiesList(*[Property(k, v) for k, v in schema.items()]).to_dict()
