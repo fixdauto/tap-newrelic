@@ -1,7 +1,7 @@
 """Stream class for tap-newrelic."""
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
 from functools import cached_property
+from typing import Any, Dict, Iterable, List, Optional, Type
 
 import inflection
 import pendulum
@@ -13,6 +13,7 @@ from singer_sdk.typing import (
     BooleanType,
     DateTimeType,
     IntegerType,
+    JSONTypeHelper,
     NumberType,
     PropertiesList,
     Property,
@@ -27,7 +28,28 @@ def unix_timestamp_to_datetime(timestamp: int) -> datetime:
 
 def snake_case(row: dict) -> dict:
     """Convert object keys to snake case."""
-    return {inflection.underscore(k.replace('.', '_')): v for k, v in row.items()}
+    return {inflection.underscore(k.replace(".", "_")): v for k, v in row.items()}
+
+
+def row_to_property_types(row: dict) -> Dict[str, Type[JSONTypeHelper]]:
+    """Convert sample data into a dict of types for generating a PropertiesList."""
+    schema: Dict[str, Type[JSONTypeHelper]] = {}
+    for k, v in row.items():
+        if k == "timestamp":
+            schema["timestamp"] = DateTimeType
+        elif isinstance(v, str):
+            schema[k] = StringType
+        elif isinstance(v, float):
+            schema[k] = NumberType
+        elif isinstance(v, bool):
+            schema[k] = BooleanType
+        elif isinstance(v, int):
+            schema[k] = IntegerType
+        else:
+            raise Exception(
+                "Unsupported type of custom query response " f"{type(v)} in {k}"
+            )
+    return schema
 
 
 class NewRelicStream(GraphQLStream):
@@ -260,8 +282,7 @@ class LogStream(NewRelicStream):
     primary_keys = ["message_id"]
 
     nqrl_query = (
-        "SELECT * FROM Log SINCE '{}' UNTIL '{}' "
-        "ORDER BY timestamp LIMIT MAX"
+        "SELECT * FROM Log SINCE '{}' UNTIL '{}' " "ORDER BY timestamp LIMIT MAX"
     )
 
     schema = PropertiesList(
@@ -270,7 +291,7 @@ class LogStream(NewRelicStream):
         Property("entity_guids", StringType),
         Property("entity_name", StringType),
         Property("hostname", StringType),
-        Property("level", StringType), # TODO: enum
+        Property("level", StringType),  # TODO: enum
         Property("message", StringType),
         Property("message_id", StringType),
         Property("span_id", StringType),
@@ -280,9 +301,10 @@ class LogStream(NewRelicStream):
         Property("newrelic_source", StringType),
     ).to_dict()
 
+
 class CustomQueryStream(NewRelicStream):
     """Stream for executing any custom NQRL query.
-    
+
     Currently requires all queries to be incremental on timestamp.
     """
 
@@ -291,53 +313,49 @@ class CustomQueryStream(NewRelicStream):
     primary_keys = ["timestamp", "app_id", "real_agent_id", "priority"]
 
     def __init__(self, *args, **kwargs):
+        """Create a new CustomQueryStream."""
         self.initialized = False
         self._schema = None
         super().__init__(*args, **kwargs)
         self.initialized = True
 
-    
     @cached_property
     def nqrl_query(self):
+        """Return the full NQRL query to execute."""
         if not self._schema:
             return self.base_nqrl_query() + " ORDER BY timestamp LIMIT MAX"
-        return self.base_nqrl_query() + " SINCE '{}' UNTIL '{}' ORDER BY timestamp LIMIT MAX"
+        return (
+            self.base_nqrl_query()
+            + " SINCE '{}' UNTIL '{}' ORDER BY timestamp LIMIT MAX"
+        )
 
     def base_nqrl_query(self):
+        """Return the un-ordered query as defined by the config."""
         return {
-            custom['name']: custom['query'] for custom in self.config["custom_queries"]
-        }[self.name] 
+            custom["name"]: custom["query"] for custom in self.config["custom_queries"]
+        }[self.name]
 
     @property
     def schema(self):
-        """Make an API call for one page of results and use that to determine the schema."""
+        """Make an API call for one page of results to determine the schema."""
         if not self.initialized:
-            return PropertiesList(Property('timestamp', DateTimeType)).to_dict()
+            # Return a placeholder to get through inititalization
+            return PropertiesList(Property("timestamp", DateTimeType)).to_dict()
         if self._schema:
-             return self._schema
+            return self._schema
         schema = {}
-        
+
         decorated_request = self.request_decorator(self._request)
         prepared_request = self.prepare_request(context=None, next_page_token=None)
         resp = decorated_request(prepared_request, context=None)
         rows = self.parse_response(resp)
         if not rows:
-            raise Exception(f"Stream {self.name} returned no results, therefore unable to introspect schema")
+            raise Exception(
+                f"Stream {self.name} returned no results, "
+                "therefore unable to introspect schema"
+            )
         for row in rows:
-            for k, v in snake_case(row).items():
-                if k == 'timestamp':
-                    schema['timestamp'] = DateTimeType
-                elif isinstance(v, str):
-                    schema[k] = StringType
-                elif isinstance(v, float):
-                    schema[k] = NumberType
-                elif isinstance(v, bool):
-                    schema[k] = BooleanType
-                elif isinstance(v, int):
-                    schema[k] = IntegerType
-                else:
-                    raise Exception(f"Unsupported type of custom query response {type(v)} in {self.name}.{k}")
-
+            schema = {**schema, **row_to_property_types(snake_case(row))}
         self._schema = PropertiesList(
             *[Property(k, v) for k, v in schema.items()]
         ).to_dict()
