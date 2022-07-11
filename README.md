@@ -6,7 +6,7 @@ Build with the [Singer SDK](https://gitlab.com/meltano/singer-sdk).
 
 It uses the [NerdGraph API](https://docs.newrelic.com/docs/apis/nerdgraph/get-started/introduction-new-relic-nerdgraph/) to fetch data using [NRQL](https://docs.newrelic.com/docs/query-your-data/nrql-new-relic-query-language/get-started/nrql-syntax-clauses-functions/).
 
-Currently, only synthetics checks data (`SyntheticCheck`) is currently supported. However it
+Currently, only synthetics checks data (`SyntheticCheck`) and logs (`Log`) are natively supported, however the tap supports custom queries for any query that is orderable by `timestamp`. In addition it
 should be streightforward to add [other data sources](https://docs.newrelic.com/docs/query-your-data/nrql-new-relic-query-language/get-started/introduction-nrql-new-relics-query-language/#what-you-can-query), PRs accepted.
 
 ## Installation
@@ -26,7 +26,12 @@ pip install tap-newrelic
   "account_id": 12345678,
   "start_date": "2021-01-00T00:00:00Z",
   // optional, defaults to https://api.newrelic.com/graphql
-  "api_url": "https://api.eu.newrelic.com/graphql"
+  "api_url": "https://api.eu.newrelic.com/graphql",
+  // optional, a list of custom queries to run
+  "custom_queries": {
+    "name": "my_custom_event",
+    "query": "SELECT * FROM my_custom_event"
+  }
 }
 ```
 
