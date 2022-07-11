@@ -1,3 +1,9 @@
+# 0.2.0
+
+- Add support for `Log` stream
+- Add support for custom query streams using the `custom_queries` config option
+- Update SDK to `0.6.1`
+
 # 0.1.2
 
 - Update SDK to `0.3.17` [#2](https://github.com/fixdauto/tap-newrelic/pull/2)
