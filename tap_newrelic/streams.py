@@ -315,18 +315,21 @@ class CustomQueryStream(NewRelicStream):
         """Create a new CustomQueryStream."""
         self.initialized = False
         self._schema = None
+        self.base_nqrl_query = None
         super().__init__(*args, **kwargs)
         self.initialized = True
         self._schema = self.schema
         # reset earliest timestamp
         self._latest_timestamp = None
-        self.base_nqrl_query = {
-            custom["name"]: custom["query"] for custom in self.config["custom_queries"]
-        }[self.name]
 
     @property
     def nqrl_query(self):
         """Return the full NQRL query to execute."""
+        if not self.base_nqrl_query:
+            self.base_nqrl_query = {
+                custom["name"]: custom["query"]
+                for custom in self.config["custom_queries"]
+            }[self.name]
         if not self._schema:
             return (
                 self.base_nqrl_query
