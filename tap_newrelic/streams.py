@@ -1,6 +1,5 @@
 """Stream class for tap-newrelic."""
 from datetime import datetime
-from functools import cached_property
 from typing import Any, Dict, Iterable, List, Optional, Type
 
 import inflection
@@ -321,6 +320,9 @@ class CustomQueryStream(NewRelicStream):
         self._schema = self.schema
         # reset earliest timestamp
         self._latest_timestamp = None
+        self.base_nqrl_query = {
+            custom["name"]: custom["query"] for custom in self.config["custom_queries"]
+        }[self.name]
 
     @property
     def nqrl_query(self):
@@ -333,13 +335,6 @@ class CustomQueryStream(NewRelicStream):
         return (
             self.base_nqrl_query + " SINCE '{}' UNTIL '{}' ORDER BY timestamp LIMIT MAX"
         )
-
-    @cached_property
-    def base_nqrl_query(self):
-        """Return the un-ordered query as defined by the config."""
-        return {
-            custom["name"]: custom["query"] for custom in self.config["custom_queries"]
-        }[self.name]
 
     @property
     def schema(self):

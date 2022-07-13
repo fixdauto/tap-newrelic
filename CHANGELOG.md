@@ -1,3 +1,7 @@
+# 0.2.1
+
+- Fix: re-enable support for python3.7 environments [#3](https://github.com/fixdauto/tap-newrelic/pull/3)
+
 # 0.2.0
 
 - Add support for `Log` stream
