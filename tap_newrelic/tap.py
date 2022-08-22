@@ -43,6 +43,18 @@ class TapNewRelic(Tap):
                         "Required to be able to end with "
                         "`SINCE X UNTIL Y ORDER BY TIMESTAMP LIMIT MAX`",
                     ),
+                    Property(
+                        "key_properties",
+                        ArrayType(StringType),
+                        description="Provide alternate key properties to uniquely "
+                        "identify events. Annoyingly, NewRelic doesn't seem to "
+                        "provide unique identifiers for custom events. By default "
+                        "custom queries use `timestamp`,`app_id`, `real_agent_id`, "
+                        " and `priority`, although this can still cause duplicates. "
+                        "If you add your own unique id to events, you can specify "
+                        "them here.",
+                        default=["timestamp", "app_id", "real_agent_id", "priority"],
+                    ),
                 )
             ),
         ),

@@ -307,10 +307,6 @@ class CustomQueryStream(NewRelicStream):
     Currently requires all queries to be incremental on timestamp.
     """
 
-    # It seems NR doesn't add a guid for custom events, or at least doesn't expose it.
-    # This is probably enough to uniquely identify an event
-    primary_keys = ["timestamp", "app_id", "real_agent_id", "priority"]
-
     def __init__(self, *args, **kwargs):
         """Create a new CustomQueryStream."""
         self.initialized = False
@@ -320,9 +316,21 @@ class CustomQueryStream(NewRelicStream):
         self._schema = self.schema
         # reset earliest timestamp
         self._latest_timestamp = None
-        self.base_nqrl_query = {
-            custom["name"]: custom["query"] for custom in self.config["custom_queries"]
-        }[self.name]
+
+    @property
+    def custom_query_config(self):
+        """Return the configuration of the stream."""
+        return {q["name"]: q for q in self.config["custom_queries"]}[self.name]
+
+    @property
+    def base_nqrl_query(self):
+        """Return the NQRL query without the filter and order from the config."""
+        return self.custom_query_config["query"]
+
+    @property
+    def primary_keys(self) -> List[str]:
+        """Get primary keys."""
+        return self.custom_query_config["key_properties"]
 
     @property
     def nqrl_query(self):
@@ -340,7 +348,7 @@ class CustomQueryStream(NewRelicStream):
     def schema(self):
         """Make an API call for one page of results to determine the schema."""
         if not self.initialized:
-            # Return a placeholder to get through inititalization
+            # Return a placeholder to get through initialization
             return PropertiesList(Property("timestamp", DateTimeType)).to_dict()
         if self._schema:
             return self._schema
