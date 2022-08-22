@@ -316,6 +316,7 @@ class CustomQueryStream(NewRelicStream):
         self._schema = self.schema
         # reset earliest timestamp
         self._latest_timestamp = None
+        self.primary_keys = self.custom_query_config["key_properties"]
 
     @property
     def custom_query_config(self):
@@ -326,11 +327,6 @@ class CustomQueryStream(NewRelicStream):
     def base_nqrl_query(self):
         """Return the NQRL query without the filter and order from the config."""
         return self.custom_query_config["query"]
-
-    @property
-    def primary_keys(self) -> List[str]:
-        """Get primary keys."""
-        return self.custom_query_config["key_properties"]
 
     @property
     def nqrl_query(self):
