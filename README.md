@@ -30,7 +30,9 @@ pip install tap-newrelic
   // optional, a list of custom queries to run
   "custom_queries": {
     "name": "my_custom_event",
-    "query": "SELECT * FROM my_custom_event"
+    "query": "SELECT * FROM my_custom_event",
+    // optional, override the primary keys for your event
+    "key_properties": ["my_event_id"]
   }
 }
 ```
